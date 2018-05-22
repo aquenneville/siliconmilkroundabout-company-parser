@@ -12,6 +12,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 
 public class CompanyPageDownloader {
     
@@ -38,7 +41,7 @@ public class CompanyPageDownloader {
     
     public static class Download {
         public static String currentFilename = "";
-        public static int contentLength = 0;
+        public static long contentLength = 0;
         public static int responseCode = 0;
         public static String contentType; 
         
@@ -117,37 +120,44 @@ public class CompanyPageDownloader {
             if (Files.notExists(fileDownloadPath)) {
 
                 // start download
-                URL url = new URL(fileURL);	        
-                HttpURLConnection httpConn = (HttpURLConnection) url.openConnection();
-                httpConn.setRequestMethod("GET"); 
-                httpConn.setRequestProperty("User-Agent", USER_AGENT);
-                Download.responseCode = httpConn.getResponseCode();
+                //URL url = new URL(fileURL);	        
+                //HttpURLConnection httpConn = (HttpURLConnection) url.openConnection();
+                //httpConn.setRequestMethod("GET"); 
+                //httpConn.setRequestProperty("User-Agent", USER_AGENT);
+            	try {
+					HttpClient.executeRequest(fileURL);
+				} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+                Download.responseCode = HttpClient.getStatusCode();
                 Download.currentFilename = getAbsoluteFileDownloadPath(localDownloadPath, fileName);
                 // always check HTTP response code first
                 if (Download.responseCode == HttpURLConnection.HTTP_OK) {
                     
-                    Download.contentType = httpConn.getContentType();
-                    Download.contentLength = httpConn.getContentLength();
+                    Download.contentType = HttpClient.getContentType();
+                    Download.contentLength = HttpClient.getContentLength();
 
                     // is file URL a folder ?
                     if (fileURL.endsWith("/") && Download.contentType.contains("text/html;")) {
                         fileName = HTML_INDEX;
                     }
-
+                    
+                    Files.write(Paths.get(fileName), HttpClient.getByteArray());
                     // opens input stream from the HTTP connection
-                    InputStream inputStream = httpConn.getInputStream();
+                    //InputStream inputStream = httpConn.getInputStream();
 
                     // opens an output stream to save into file
-                    FileOutputStream outputStream = new FileOutputStream(getAbsoluteFileDownloadPath(localDownloadPath, fileName));
+                    //FileOutputStream outputStream = new FileOutputStream(getAbsoluteFileDownloadPath(localDownloadPath, fileName));
 
-                    int bytesRead = -1;
-                    byte[] buffer = new byte[BUFFER_SIZE];
-                    while ((bytesRead = inputStream.read(buffer)) != -1) {
-                        outputStream.write(buffer, 0, bytesRead);
-                    }
+                    //int bytesRead = -1;
+                    //byte[] buffer = new byte[BUFFER_SIZE];
+                    //while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    //    outputStream.write(buffer, 0, bytesRead);
+                   // }
 
-                    outputStream.close();
-                    inputStream.close();
+                    //outputStream.close();
+                    //inputStream.close();
 
                     System.out.println(Download.report());
 
@@ -166,7 +176,7 @@ public class CompanyPageDownloader {
                     DownloadSummary.totalFailedDownloads ++;
                     return false;
                 }
-                httpConn.disconnect();
+                //httpConn.disconnect();
                 
             } else {
                 System.out.println("File found on disk - " + getAbsoluteFileDownloadPath(localDownloadPath, fileName));
